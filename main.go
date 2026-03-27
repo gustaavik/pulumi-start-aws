@@ -19,8 +19,7 @@ func main() {
 		}
 
 		ctx.Export("bucketName", website.BucketID)
-		ctx.Export("sshAccess", website.Url) // ssh ec2-user@<public-ip>
+		ctx.Export("sshAccess", website.Url)
 		return nil
 	})
-
 }
