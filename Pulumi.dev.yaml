@@ -1,3 +1,0 @@
-config:
-  aws:region: eu-west-1
-  pulumi-start-aws:zerotierNetworkID: "166359304e80c3b5"
