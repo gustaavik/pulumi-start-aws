@@ -59,18 +59,7 @@ func main() {
 			return err
 		}
 
-		// 5. Web server in public subnet (HTTP publicly accessible, SSH via Tailscale)
-		webServer, err := NewWebServer(ctx, "main", WebServerArgs{
-			SubnetID:            net.PublicSubnetID,
-			SecurityGroupID:     net.WebserverSgID,
-			InstanceProfileName: iamRes.InstanceProfileName,
-			BucketID:            storage.BucketID,
-		})
-		if err != nil {
-			return err
-		}
-
-		// 6. RDS PostgreSQL in private DB subnets
+		// 5. RDS PostgreSQL in private DB subnets
 		db, err := NewDatabase(ctx, "main", DatabaseArgs{
 			DbSubnetIDs:     net.DbSubnetIDs,
 			SecurityGroupID: net.DatabaseSgID,
@@ -82,7 +71,30 @@ func main() {
 			return err
 		}
 
-		// 7. Tailscale subnet router — advertises VPC to tailnet
+		// 6. Node.js API server in private app subnet (Tailscale exposes API + DB proxy)
+		apiServer, err := NewApiServer(ctx, "main", ApiServerArgs{
+			SubnetID:         net.PrivateSubnetID,
+			SecurityGroupID:  net.ApiSgID,
+			TailscaleAuthKey: tailscaleAuthKey,
+			DbEndpoint:       db.Endpoint,
+		})
+		if err != nil {
+			return err
+		}
+
+		// 7. Web server in public subnet (proxies /api to the private API server)
+		webServer, err := NewWebServer(ctx, "main", WebServerArgs{
+			SubnetID:            net.PublicSubnetID,
+			SecurityGroupID:     net.WebserverSgID,
+			InstanceProfileName: iamRes.InstanceProfileName,
+			BucketID:            storage.BucketID,
+			ApiPrivateIP:        apiServer.PrivateIP,
+		})
+		if err != nil {
+			return err
+		}
+
+		// 8. Tailscale subnet router - advertises VPC to tailnet
 		_, err = NewTailscaleRouter(ctx, "main", TailscaleRouterArgs{
 			SubnetID:        net.PublicSubnetID,
 			SecurityGroupID: net.RouterSgID,
@@ -100,6 +112,9 @@ func main() {
 		ctx.Export("dbEndpoint", db.Endpoint)
 		ctx.Export("sshAccess", webServer.PrivateIP.ApplyT(func(ip string) string {
 			return fmt.Sprintf("ssh ubuntu@%s (via Tailscale)", ip)
+		}).(pulumi.StringOutput))
+		ctx.Export("apiUrl", apiServer.PrivateIP.ApplyT(func(ip string) string {
+			return fmt.Sprintf("http://%s:3000 (VPC/Tailscale only)", ip)
 		}).(pulumi.StringOutput))
 
 		return nil

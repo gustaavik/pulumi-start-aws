@@ -17,6 +17,7 @@ type NetworkResult struct {
 	WebserverSgID   pulumi.IDOutput
 	DatabaseSgID    pulumi.IDOutput
 	NatSgID         pulumi.IDOutput
+	ApiSgID         pulumi.IDOutput
 }
 
 func NewNetwork(ctx *pulumi.Context, name string) (*NetworkResult, error) {
@@ -146,7 +147,7 @@ func NewNetwork(ctx *pulumi.Context, name string) (*NetworkResult, error) {
 
 	webserverSg, err := ec2.NewSecurityGroup(ctx, name+"-webserver-sg", &ec2.SecurityGroupArgs{
 		VpcId:       vpc.ID(),
-		Description: pulumi.String("Web server — HTTP public, SSH via Tailscale only"),
+		Description: pulumi.String("Web server - HTTP public, SSH via Tailscale only"),
 		Ingress: ec2.SecurityGroupIngressArray{
 			ec2.SecurityGroupIngressArgs{
 				Protocol:    pulumi.String("tcp"),
@@ -179,7 +180,7 @@ func NewNetwork(ctx *pulumi.Context, name string) (*NetworkResult, error) {
 
 	databaseSg, err := ec2.NewSecurityGroup(ctx, name+"-database-sg", &ec2.SecurityGroupArgs{
 		VpcId:       vpc.ID(),
-		Description: pulumi.String("RDS PostgreSQL — VPC-internal only"),
+		Description: pulumi.String("RDS PostgreSQL - VPC-internal only"),
 		Ingress: ec2.SecurityGroupIngressArray{
 			ec2.SecurityGroupIngressArgs{
 				Protocol:    pulumi.String("tcp"),
@@ -205,7 +206,7 @@ func NewNetwork(ctx *pulumi.Context, name string) (*NetworkResult, error) {
 
 	natSg, err := ec2.NewSecurityGroup(ctx, name+"-nat-sg", &ec2.SecurityGroupArgs{
 		VpcId:       vpc.ID(),
-		Description: pulumi.String("NAT instance — accepts all VPC traffic"),
+		Description: pulumi.String("NAT instance - accepts all VPC traffic"),
 		Ingress: ec2.SecurityGroupIngressArray{
 			ec2.SecurityGroupIngressArgs{
 				Protocol:    pulumi.String("-1"),
@@ -229,6 +230,39 @@ func NewNetwork(ctx *pulumi.Context, name string) (*NetworkResult, error) {
 		return nil, err
 	}
 
+	apiSg, err := ec2.NewSecurityGroup(ctx, name+"-api-sg", &ec2.SecurityGroupArgs{
+		VpcId:       vpc.ID(),
+		Description: pulumi.String("API server - VPC/Tailscale access only"),
+		Ingress: ec2.SecurityGroupIngressArray{
+			ec2.SecurityGroupIngressArgs{
+				Protocol:    pulumi.String("tcp"),
+				FromPort:    pulumi.Int(3000),
+				ToPort:      pulumi.Int(3000),
+				CidrBlocks:  pulumi.StringArray{pulumi.String(vpcCidr)},
+				Description: pulumi.String("API from VPC (webserver + Tailscale)"),
+			},
+			ec2.SecurityGroupIngressArgs{
+				Protocol:    pulumi.String("tcp"),
+				FromPort:    pulumi.Int(22),
+				ToPort:      pulumi.Int(22),
+				CidrBlocks:  pulumi.StringArray{pulumi.String(vpcCidr)},
+				Description: pulumi.String("SSH from VPC (Tailscale)"),
+			},
+		},
+		Egress: ec2.SecurityGroupEgressArray{
+			ec2.SecurityGroupEgressArgs{
+				Protocol:   pulumi.String("-1"),
+				FromPort:   pulumi.Int(0),
+				ToPort:     pulumi.Int(0),
+				CidrBlocks: pulumi.StringArray{pulumi.String("0.0.0.0/0")},
+			},
+		},
+		Tags: pulumi.StringMap{"Name": pulumi.String(name + "-api-sg")},
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	return &NetworkResult{
 		VpcID:           vpc.ID(),
 		PublicSubnetID:  publicSubnet.ID(),
@@ -238,5 +272,6 @@ func NewNetwork(ctx *pulumi.Context, name string) (*NetworkResult, error) {
 		WebserverSgID:   webserverSg.ID(),
 		DatabaseSgID:    databaseSg.ID(),
 		NatSgID:         natSg.ID(),
+		ApiSgID:         apiSg.ID(),
 	}, nil
 }

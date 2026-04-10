@@ -12,6 +12,7 @@ type WebServerArgs struct {
 	SecurityGroupID     pulumi.IDOutput
 	InstanceProfileName pulumi.StringOutput
 	BucketID            pulumi.IDOutput
+	ApiPrivateIP        pulumi.StringOutput
 }
 
 type WebServerResult struct {
@@ -32,15 +33,39 @@ func NewWebServer(ctx *pulumi.Context, name string, args WebServerArgs) (*WebSer
 		return nil, err
 	}
 
-	userData := args.BucketID.ApplyT(func(bucket string) (string, error) {
+	userData := pulumi.All(args.BucketID, args.ApiPrivateIP).ApplyT(func(vals []interface{}) (string, error) {
+		bucket := string(vals[0].(pulumi.ID))
+		apiIP := vals[1].(string)
 		return fmt.Sprintf(`#!/bin/bash
 set -e
 apt-get update -y
 apt-get install -y nginx awscli
 systemctl enable nginx
 aws s3 cp s3://%s/index.html /var/www/html/index.html
-systemctl start nginx
-`, bucket), nil
+
+# Configure nginx to reverse-proxy /api to the private API server
+cat > /etc/nginx/sites-available/default << 'NGINXEOF'
+server {
+    listen 80 default_server;
+
+    root /var/www/html;
+    index index.html;
+
+    location / {
+        try_files $uri $uri/ =404;
+    }
+
+    location /api {
+        proxy_pass http://%s:3000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+}
+NGINXEOF
+
+systemctl restart nginx
+`, bucket, apiIP), nil
 	}).(pulumi.StringOutput)
 
 	instance, err := ec2.NewInstance(ctx, name+"-webserver", &ec2.InstanceArgs{
