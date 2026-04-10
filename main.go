@@ -11,7 +11,7 @@ func main() {
 	pulumi.Run(func(ctx *pulumi.Context) error {
 		cfg := config.New(ctx, "")
 		tailscaleAuthKey := cfg.RequireSecret("tailscaleAuthKey")
-		dbPassword := cfg.RequireSecret("dbPassword")
+		_ = cfg.RequireSecret("dbPassword")
 
 		dbUsername := cfg.Get("dbUsername")
 		if dbUsername == "" {
@@ -60,23 +60,23 @@ func main() {
 		}
 
 		// 5. RDS PostgreSQL in private DB subnets
-		db, err := NewDatabase(ctx, "main", DatabaseArgs{
-			DbSubnetIDs:     net.DbSubnetIDs,
-			SecurityGroupID: net.DatabaseSgID,
-			DbName:          dbName,
-			DbUsername:      dbUsername,
-			DbPassword:      dbPassword,
-		})
-		if err != nil {
-			return err
-		}
+		// db, err := NewDatabase(ctx, "main", DatabaseArgs{
+		// 	DbSubnetIDs:     net.DbSubnetIDs,
+		// 	SecurityGroupID: net.DatabaseSgID,
+		// 	DbName:          dbName,
+		// 	DbUsername:      dbUsername,
+		// 	DbPassword:      dbPassword,
+		// })
+		// if err != nil {
+		// 	return err
+		// }
 
 		// 6. Node.js API server in private app subnet (Tailscale exposes API + DB proxy)
 		apiServer, err := NewApiServer(ctx, "main", ApiServerArgs{
 			SubnetID:         net.PrivateSubnetID,
 			SecurityGroupID:  net.ApiSgID,
 			TailscaleAuthKey: tailscaleAuthKey,
-			DbEndpoint:       db.Endpoint,
+			DbEndpoint:       pulumi.Sprintf("%s:5432", "mydb.cluster-xyz.us-west-2.rds.amazonaws.com"),
 		})
 		if err != nil {
 			return err
@@ -109,7 +109,7 @@ func main() {
 		ctx.Export("websiteUrl", webServer.PublicIP.ApplyT(func(ip string) string {
 			return fmt.Sprintf("http://%s", ip)
 		}).(pulumi.StringOutput))
-		ctx.Export("dbEndpoint", db.Endpoint)
+		// ctx.Export("dbEndpoint", db.Endpoint)
 		ctx.Export("sshAccess", webServer.PrivateIP.ApplyT(func(ip string) string {
 			return fmt.Sprintf("ssh ubuntu@%s (via Tailscale)", ip)
 		}).(pulumi.StringOutput))
