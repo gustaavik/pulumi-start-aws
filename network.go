@@ -46,7 +46,7 @@ func NewNetwork(ctx *pulumi.Context, name string) (*NetworkResult, error) {
 
 	publicSubnet, err := ec2.NewSubnet(ctx, name+"-public", &ec2.SubnetArgs{
 		VpcId:               vpc.ID(),
-		CidrBlock:           pulumi.String("10.0.1.0/24"),
+		CidrBlock:           pulumi.String("10.0.10.0/24"),
 		AvailabilityZone:    pulumi.String(azA),
 		MapPublicIpOnLaunch: pulumi.Bool(true),
 		Tags:                pulumi.StringMap{"Name": pulumi.String(name + "-public")},
