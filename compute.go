@@ -40,9 +40,29 @@ func NewWebServer(ctx *pulumi.Context, name string, args WebServerArgs) (*WebSer
 		return fmt.Sprintf(`#!/bin/bash
 set -e
 apt-get update -y
-apt-get install -y nginx awscli
+apt-get install -y nginx unzip curl
+
+# Install AWS CLI v2 (not available as apt package on Ubuntu 24.04)
+curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o /tmp/awscliv2.zip
+unzip -q /tmp/awscliv2.zip -d /tmp
+/tmp/aws/install --update
+rm -rf /tmp/awscliv2.zip /tmp/aws
+
 systemctl enable nginx
-aws s3 cp s3://%s/index.html /var/www/html/index.html
+
+# Retry S3 copy — IAM credentials may take time to propagate
+set +e
+for i in $(seq 1 12); do
+    if /usr/local/bin/aws s3 cp s3://%s/index.html /var/www/html/index.html; then
+        break
+    fi
+    sleep 5
+done
+set -e
+
+if [ ! -f /var/www/html/index.html ]; then
+    echo '<h1>S3 copy failed</h1><p>Could not fetch index.html from S3.</p>' > /var/www/html/index.html
+fi
 
 # Configure nginx to reverse-proxy /api to the private API server
 cat > /etc/nginx/sites-available/default << 'NGINXEOF'
