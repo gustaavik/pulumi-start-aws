@@ -143,20 +143,21 @@ pulumi up
 
 ```
 .
-├── Pulumi.yaml          Project metadata
-├── Pulumi.dev.yaml      Dev stack config (secrets encrypted)
-├── main.go              Entry point — wires all components
-├── network.go           VPC, subnets, IGW, route tables, security groups
-├── compute.go           Web server EC2 (Nginx + S3 + reverse proxy)
-├── api.go               API server EC2 (Express + Tailscale + socat)
-├── nat.go               NAT instance (fck-nat ARM64) + private routing
-├── tailscale.go         Tailscale subnet router EC2
-├── storage.go           S3 bucket + object upload
-├── iam.go               EC2 IAM role + S3 read policy
-├── database.go          RDS PostgreSQL (disabled in main.go)
-├── keypair.go           ED25519 SSH key pair
-├── index.html           Static HTML uploaded to S3
-├── go.mod / go.sum      Go module dependencies
+├── Pulumi.yaml              Project metadata
+├── Pulumi.dev.yaml          Dev stack config (secrets encrypted)
+├── main.go                  Entry point — wires all components
+├── index.html               Static HTML uploaded to S3
+├── go.mod / go.sum          Go module dependencies
+└── component/
+    ├── network.go           VPC, subnets, IGW, route tables, security groups
+    ├── compute.go           Web server EC2 (Nginx + S3 + reverse proxy)
+    ├── api.go               API server EC2 (Express + Tailscale + socat)
+    ├── nat.go               NAT instance (fck-nat ARM64) + private routing
+    ├── tailscale.go         Tailscale subnet router EC2
+    ├── storage.go           S3 bucket + object upload
+    ├── iam.go               EC2 IAM role + S3 read policy
+    ├── database.go          RDS PostgreSQL (disabled in main.go)
+    └── keypair.go           ED25519 SSH key pair
 ```
 
 ## Enabling RDS
