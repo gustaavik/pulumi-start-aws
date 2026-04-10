@@ -1,4 +1,4 @@
-package main
+package component
 
 import (
 	"github.com/pulumi/pulumi-aws/sdk/v7/go/aws/rds"

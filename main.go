@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"pulumi-start-aws/component"
 
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi/config"
@@ -24,19 +25,19 @@ func main() {
 		}
 
 		// 1. SSH key pair for EC2 access
-		kp, err := NewKeyPair(ctx, "main", sshPublicKey)
+		kp, err := component.NewKeyPair(ctx, "main", sshPublicKey)
 		if err != nil {
 			return err
 		}
 
 		// 2. Networking: VPC, subnets, security groups
-		net, err := NewNetwork(ctx, "main")
+		net, err := component.NewNetwork(ctx, "main")
 		if err != nil {
 			return err
 		}
 
 		// 2. S3 storage for static website files
-		storage, err := NewStorage(ctx, "main", StorageArgs{
+		storage, err := component.NewStorage(ctx, "main", component.StorageArgs{
 			Files: []string{"index.html"},
 		})
 		if err != nil {
@@ -44,7 +45,7 @@ func main() {
 		}
 
 		// 3. IAM role so EC2 can read from S3
-		iamRes, err := NewIam(ctx, "main", IamArgs{
+		iamRes, err := component.NewIam(ctx, "main", component.IamArgs{
 			BucketArn: storage.BucketArn,
 		})
 		if err != nil {
@@ -52,7 +53,7 @@ func main() {
 		}
 
 		// 4. NAT instance for private subnet outbound internet
-		err = NewNat(ctx, "main", NatArgs{
+		err = component.NewNat(ctx, "main", component.NatArgs{
 			VpcID:          net.VpcID,
 			PublicSubnetID: net.PublicSubnetID,
 			NatSgID:        net.NatSgID,
@@ -79,7 +80,7 @@ func main() {
 		// }
 
 		// 6. Node.js API server in private app subnet (Tailscale exposes API + DB proxy)
-		apiServer, err := NewApiServer(ctx, "main", ApiServerArgs{
+		apiServer, err := component.NewApiServer(ctx, "main", component.ApiServerArgs{
 			SubnetID:         net.PrivateSubnetID,
 			SecurityGroupID:  net.ApiSgID,
 			TailscaleAuthKey: tailscaleAuthKey,
@@ -91,7 +92,7 @@ func main() {
 		}
 
 		// 7. Web server in public subnet (proxies /api to the private API server)
-		webServer, err := NewWebServer(ctx, "main", WebServerArgs{
+		webServer, err := component.NewWebServer(ctx, "main", component.WebServerArgs{
 			SubnetID:            net.PublicSubnetID,
 			SecurityGroupID:     net.WebserverSgID,
 			InstanceProfileName: iamRes.InstanceProfileName,
@@ -104,11 +105,11 @@ func main() {
 		}
 
 		// 8. Tailscale subnet router - advertises VPC to tailnet
-		_, err = NewTailscaleRouter(ctx, "main", TailscaleRouterArgs{
+		_, err = component.NewTailscaleRouter(ctx, "main", component.TailscaleRouterArgs{
 			SubnetID:        net.PublicSubnetID,
 			SecurityGroupID: net.RouterSgID,
 			AuthKey:         tailscaleAuthKey,
-			VpcCidr:         vpcCidr,
+			VpcCidr:         component.VpcCidr,
 			KeyName:         kp.KeyName,
 		})
 		if err != nil {

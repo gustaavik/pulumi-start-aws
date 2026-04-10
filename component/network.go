@@ -1,4 +1,4 @@
-package main
+package component
 
 import (
 	"github.com/pulumi/pulumi-aws/sdk/v7/go/aws"
@@ -6,7 +6,7 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-const vpcCidr = "10.0.0.0/16"
+const VpcCidr = "10.0.0.0/16"
 
 type NetworkResult struct {
 	VpcID           pulumi.IDOutput
@@ -33,7 +33,7 @@ func NewNetwork(ctx *pulumi.Context, name string) (*NetworkResult, error) {
 
 	// VPC
 	vpc, err := ec2.NewVpc(ctx, name+"-vpc", &ec2.VpcArgs{
-		CidrBlock:          pulumi.String(vpcCidr),
+		CidrBlock:          pulumi.String(VpcCidr),
 		EnableDnsSupport:   pulumi.Bool(true),
 		EnableDnsHostnames: pulumi.Bool(true),
 		Tags:               pulumi.StringMap{"Name": pulumi.String(name + "-vpc")},
@@ -153,7 +153,7 @@ func NewNetwork(ctx *pulumi.Context, name string) (*NetworkResult, error) {
 				Protocol:    pulumi.String("tcp"),
 				FromPort:    pulumi.Int(22),
 				ToPort:      pulumi.Int(22),
-				CidrBlocks:  pulumi.StringArray{pulumi.String(vpcCidr)},
+				CidrBlocks:  pulumi.StringArray{pulumi.String(VpcCidr)},
 				Description: pulumi.String("SSH from VPC (Tailscale)"),
 			},
 			ec2.SecurityGroupIngressArgs{
@@ -186,7 +186,7 @@ func NewNetwork(ctx *pulumi.Context, name string) (*NetworkResult, error) {
 				Protocol:    pulumi.String("tcp"),
 				FromPort:    pulumi.Int(5432),
 				ToPort:      pulumi.Int(5432),
-				CidrBlocks:  pulumi.StringArray{pulumi.String(vpcCidr)},
+				CidrBlocks:  pulumi.StringArray{pulumi.String(VpcCidr)},
 				Description: pulumi.String("PostgreSQL from VPC"),
 			},
 		},
@@ -212,7 +212,7 @@ func NewNetwork(ctx *pulumi.Context, name string) (*NetworkResult, error) {
 				Protocol:    pulumi.String("-1"),
 				FromPort:    pulumi.Int(0),
 				ToPort:      pulumi.Int(0),
-				CidrBlocks:  pulumi.StringArray{pulumi.String(vpcCidr)},
+				CidrBlocks:  pulumi.StringArray{pulumi.String(VpcCidr)},
 				Description: pulumi.String("All traffic from VPC"),
 			},
 		},
@@ -238,14 +238,14 @@ func NewNetwork(ctx *pulumi.Context, name string) (*NetworkResult, error) {
 				Protocol:    pulumi.String("tcp"),
 				FromPort:    pulumi.Int(3000),
 				ToPort:      pulumi.Int(3000),
-				CidrBlocks:  pulumi.StringArray{pulumi.String(vpcCidr)},
+				CidrBlocks:  pulumi.StringArray{pulumi.String(VpcCidr)},
 				Description: pulumi.String("API from VPC (webserver + Tailscale)"),
 			},
 			ec2.SecurityGroupIngressArgs{
 				Protocol:    pulumi.String("tcp"),
 				FromPort:    pulumi.Int(22),
 				ToPort:      pulumi.Int(22),
-				CidrBlocks:  pulumi.StringArray{pulumi.String(vpcCidr)},
+				CidrBlocks:  pulumi.StringArray{pulumi.String(VpcCidr)},
 				Description: pulumi.String("SSH from VPC (Tailscale)"),
 			},
 		},
