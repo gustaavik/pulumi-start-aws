@@ -1,5 +1,31 @@
-<html>
-    <body>
-        <h1>jaofsdj foiasdj aosipdf oiaspdjf aosipfæølpålkopd skfa</h1>
-    </body>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pulumi AWS</title>
+    <style>
+        body { font-family: system-ui, sans-serif; max-width: 600px; margin: 60px auto; padding: 0 20px; }
+        h1 { margin-bottom: 24px; }
+        #result { background: #f4f4f4; padding: 16px; border-radius: 8px; white-space: pre-wrap; font-family: monospace; }
+        #error { color: #c00; }
+    </style>
+</head>
+<body>
+    <h1>Pulumi AWS</h1>
+    <p>Response from private API:</p>
+    <div id="result">Loading...</div>
+    <div id="error"></div>
+    <script>
+        fetch('/api')
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('result').textContent = JSON.stringify(data, null, 2);
+            })
+            .catch(err => {
+                document.getElementById('result').textContent = '';
+                document.getElementById('error').textContent = 'Failed to reach API: ' + err.message;
+            });
+    </script>
+</body>
 </html>
