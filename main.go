@@ -12,6 +12,7 @@ func main() {
 		cfg := config.New(ctx, "")
 		tailscaleAuthKey := cfg.RequireSecret("tailscaleAuthKey")
 		_ = cfg.RequireSecret("dbPassword")
+		sshPublicKey := cfg.Require("sshPublicKey")
 
 		dbUsername := cfg.Get("dbUsername")
 		if dbUsername == "" {
@@ -22,7 +23,13 @@ func main() {
 			dbName = "app"
 		}
 
-		// 1. Networking: VPC, subnets, security groups
+		// 1. SSH key pair for EC2 access
+		kp, err := NewKeyPair(ctx, "main", sshPublicKey)
+		if err != nil {
+			return err
+		}
+
+		// 2. Networking: VPC, subnets, security groups
 		net, err := NewNetwork(ctx, "main")
 		if err != nil {
 			return err
@@ -77,6 +84,7 @@ func main() {
 			SecurityGroupID:  net.ApiSgID,
 			TailscaleAuthKey: tailscaleAuthKey,
 			DbEndpoint:       pulumi.Sprintf("%s:5432", "mydb.cluster-xyz.us-west-2.rds.amazonaws.com"),
+			KeyName:          kp.KeyName,
 		})
 		if err != nil {
 			return err
@@ -89,6 +97,7 @@ func main() {
 			InstanceProfileName: iamRes.InstanceProfileName,
 			BucketID:            storage.BucketID,
 			ApiPrivateIP:        apiServer.PrivateIP,
+			KeyName:             kp.KeyName,
 		})
 		if err != nil {
 			return err
@@ -100,6 +109,7 @@ func main() {
 			SecurityGroupID: net.RouterSgID,
 			AuthKey:         tailscaleAuthKey,
 			VpcCidr:         vpcCidr,
+			KeyName:         kp.KeyName,
 		})
 		if err != nil {
 			return err

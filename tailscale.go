@@ -10,6 +10,7 @@ type TailscaleRouterArgs struct {
 	SecurityGroupID pulumi.IDOutput
 	AuthKey         pulumi.StringInput
 	VpcCidr         string
+	KeyName         pulumi.StringOutput
 }
 
 type TailscaleRouterResult struct {
@@ -47,7 +48,9 @@ tailscale up --authkey=` + authKey + ` --advertise-routes=` + args.VpcCidr + `
 		VpcSecurityGroupIds:      pulumi.StringArray{args.SecurityGroupID},
 		SourceDestCheck:          pulumi.Bool(false),
 		AssociatePublicIpAddress: pulumi.Bool(true),
+		KeyName:                  args.KeyName,
 		UserData:                 userData,
+		UserDataReplaceOnChange:  pulumi.Bool(true),
 		Tags:                     pulumi.StringMap{"Name": pulumi.String(name + "-tailscale-router")},
 	})
 	if err != nil {

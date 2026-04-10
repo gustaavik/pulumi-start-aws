@@ -12,6 +12,7 @@ type ApiServerArgs struct {
 	SecurityGroupID  pulumi.IDOutput
 	TailscaleAuthKey pulumi.StringInput
 	DbEndpoint       pulumi.StringOutput
+	KeyName          pulumi.StringOutput
 }
 
 type ApiServerResult struct {
@@ -134,12 +135,14 @@ systemctl start db-proxy
 	}).(pulumi.StringOutput)
 
 	instance, err := ec2.NewInstance(ctx, name+"-api-server", &ec2.InstanceArgs{
-		Ami:                 pulumi.String(ami.Id),
-		InstanceType:        pulumi.String("t3.micro"),
-		SubnetId:            args.SubnetID,
-		VpcSecurityGroupIds: pulumi.StringArray{args.SecurityGroupID},
-		UserData:            userData,
-		Tags:                pulumi.StringMap{"Name": pulumi.String(name + "-api-server")},
+		Ami:                     pulumi.String(ami.Id),
+		InstanceType:            pulumi.String("t3.micro"),
+		SubnetId:                args.SubnetID,
+		VpcSecurityGroupIds:     pulumi.StringArray{args.SecurityGroupID},
+		KeyName:                 args.KeyName,
+		UserData:                userData,
+		UserDataReplaceOnChange: pulumi.Bool(true),
+		Tags:                    pulumi.StringMap{"Name": pulumi.String(name + "-api-server")},
 	})
 	if err != nil {
 		return nil, err

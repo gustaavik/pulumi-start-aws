@@ -13,6 +13,7 @@ type WebServerArgs struct {
 	InstanceProfileName pulumi.StringOutput
 	BucketID            pulumi.IDOutput
 	ApiPrivateIP        pulumi.StringOutput
+	KeyName             pulumi.StringOutput
 }
 
 type WebServerResult struct {
@@ -75,7 +76,9 @@ systemctl restart nginx
 		VpcSecurityGroupIds:      pulumi.StringArray{args.SecurityGroupID},
 		IamInstanceProfile:       args.InstanceProfileName,
 		AssociatePublicIpAddress: pulumi.Bool(true),
+		KeyName:                  args.KeyName,
 		UserData:                 userData,
+		UserDataReplaceOnChange:  pulumi.Bool(true),
 		Tags:                     pulumi.StringMap{"Name": pulumi.String(name + "-webserver")},
 	})
 	if err != nil {
